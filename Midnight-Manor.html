@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Midnight Manor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Nosifer&family=Chiller&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(45deg, #0a0a0a, #1a0a0a, #2a1010);
+            color: #e0e0e0;
+            overflow-x: hidden;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="8" fill="red" opacity="0.3"/></svg>'), auto;
+        }
+
+        .game-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .title {
+            font-family: 'Nosifer', cursive;
+            font-size: 3rem;
+            text-align: center;
+            color: #8B0000;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+            margin: 20px 0;
+            animation: flicker 2s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .scene {
+            flex: 2;
+            background: linear-gradient(180deg, #1a1a2e, #16213e, #0f3460);
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 30px;
+            position: relative;
+            min-height: 400px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        .scene-image {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border: 1px solid #444;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scene-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .controls {
+            flex: 1;
+            background: linear-gradient(180deg, #2a1810, #1a1010);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        .stats {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            border: 1px solid #666;
+        }
+
+        .stat-bar {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            width: 80px;
+            font-weight: bold;
+        }
+
+        .bar {
+            flex: 1;
+            height: 20px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-left: 10px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .health-bar { background: linear-gradient(90deg, #ff0000, #ff6666); }
+        .sanity-bar { background: linear-gradient(90deg, #4169E1, #87CEEB); }
+        .fear-bar { background: linear-gradient(90deg, #8B008B, #DDA0DD); }
+
+        .inventory {
+            margin-bottom: 20px;
+        }
+
+        .inventory h3 {
+            color: #8B0000;
+            margin-bottom: 10px;
+            font-family: 'Creepster', cursive;
+        }
+
+        .inventory-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .item {
+            background: #444;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.9rem;
+            border: 1px solid #666;
+        }
+
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            background: linear-gradient(45deg, #2a1810, #4a2820);
+            color: #e0e0e0;
+            border: 2px solid #8B0000;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .choice-btn:hover {
+            background: linear-gradient(45deg, #4a2820, #6a3830);
+            border-color: #ff0000;
+            box-shadow: 0 0 15px rgba(255,0,0,0.3);
+            transform: translateY(-2px);
+        }
+
+        .choice-btn:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            border: 3px solid #8B0000;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+            z-index: 1000;
+            display: none;
+            max-width: 400px;
+        }
+
+        .lightning {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ghost {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .blood-drip {
+            position: absolute;
+            top: -10px;
+            width: 2px;
+            height: 20px;
+            background: #8B0000;
+            animation: drip 3s infinite;
+        }
+
+        @keyframes drip {
+            0% { top: -10px; opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+            }
+            .title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">The Midnight Manor</h1>
+        
+        <div class="game-area">
+            <div class="scene">
+                <div class="scene-image" id="sceneImage">
+                    🏚️
+                    <div class="lightning" id="lightning"></div>
+                </div>
+                <div class="scene-description" id="sceneDescription">
+                    You stand before an abandoned Victorian manor, its gothic silhouette looming against the storm-darkened sky. Lightning illuminates broken windows like hollow eyes, and the front door creaks ominously in the wind. Your car broke down miles from civilization, and this decrepit mansion is your only shelter from the approaching storm.
+                </div>
+                <div class="choices" id="choices">
+                    <button class="choice-btn" onclick="makeChoice('enter')">Enter the manor</button>
+                    <button class="choice-btn" onclick="makeChoice('investigate')">Investigate the exterior</button>
+                    <button class="choice-btn" onclick="makeChoice('wait')">Wait by your car</button>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="stats">
+                    <div class="stat-bar">
+                        <span class="stat-label">Health:</span>
+                        <div class="bar">
+                            <div class="bar-fill health-bar" id="healthBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-bar">
+                        <span class="stat-label">Sanity:</span>
+                        <div class="bar">
+                            <div class="bar-fill sanity-bar" id="sanityBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-bar">
+                        <span class="stat-label">Fear:</span>
+                        <div class="bar">
+                            <div class="bar-fill fear-bar" id="fearBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inventory">
+                    <h3>Inventory</h3>
+                    <div class="inventory-items" id="inventoryItems">
+                        <div class="item">🔦 Flashlight</div>
+                        <div class="item">📱 Dead phone</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="message" id="message"></div>
+        
+        <div class="footer">
+            Use your choices wisely... some doors should never be opened.
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            health: 100,
+            sanity: 100,
+            fear: 0,
+            inventory: ['🔦 Flashlight', '📱 Dead phone'],
+            currentScene: 'entrance',
+            hasKey: false,
+            explored: []
+        };
+
+        const scenes = {
+            entrance: {
+                image: '🏚️',
+                description: "You stand before an abandoned Victorian manor, its gothic silhouette looming against the storm-darkened sky. Lightning illuminates broken windows like hollow eyes, and the front door creaks ominously in the wind.",
+                choices: {
+                    enter: { text: "Enter the manor", next: "foyer" },
+                    investigate: { text: "Investigate the exterior", next: "exterior" },
+                    wait: { text: "Wait by your car", next: "car_wait" }
+                }
+            },
+            exterior: {
+                image: '🌙',
+                description: "You circle the manor's perimeter. Overgrown vines claw at the walls, and you notice a basement window is slightly ajar. Strange scratching sounds echo from within. A rusty key glints in the moonlight near the garden gate.",
+                choices: {
+                    basement: { text: "Enter through basement", next: "basement" },
+                    key: { text: "Take the key", next: "take_key" },
+                    front: { text: "Go to front door", next: "entrance" }
+                }
+            },
+            take_key: {
+                image: '🗝️',
+                description: "You pick up the ornate brass key. It's ice cold and seems to pulse with an otherworldly energy. You hear a distant scream from inside the manor.",
+                choices: {
+                    basement: { text: "Enter through basement", next: "basement" },
+                    front: { text: "Use key on front door", next: "foyer_key" },
+                    examine: { text: "Examine the key", next: "examine_key" }
+                }
+            },
+            foyer: {
+                image: '🕯️',
+                description: "The front door slams shut behind you. You're in a decrepit foyer with a grand staircase. Dust particles dance in the pale moonlight. A grandfather clock ticks ominously, though its hands point to midnight. You hear footsteps above.",
+                choices: {
+                    upstairs: { text: "Go upstairs", next: "upstairs" },
+                    library: { text: "Enter the library", next: "library" },
+                    kitchen: { text: "Check the kitchen", next: "kitchen" }
+                }
+            },
+            basement: {
+                image: '🕳️',
+                description: "The basement is pitch black and smells of decay. Your flashlight flickers. You see old chains hanging from the ceiling and hear scratching in the walls. Something moves in the shadows.",
+                choices: {
+                    investigate_shadow: { text: "Investigate the shadow", next: "shadow_encounter" },
+                    chains: { text: "Examine the chains", next: "chains" },
+                    escape: { text: "Try to escape", next: "basement_escape" }
+                }
+            },
+            library: {
+                image: '📚',
+                description: "Ancient books line the walls, many with titles in languages you don't recognize. A leather-bound journal lies open on the desk, its pages filled with disturbing sketches and warnings about 'the entity that feeds on fear.'",
+                choices: {
+                    journal: { text: "Read the journal", next: "read_journal" },
+                    books: { text: "Search the books", next: "search_books" },
+                    leave: { text: "Leave quickly", next: "foyer" }
+                }
+            }
+        };
+
+        function updateStats() {
+            document.getElementById('healthBar').style.width = gameState.health + '%';
+            document.getElementById('sanityBar').style.width = gameState.sanity + '%';
+            document.getElementById('fearBar').style.width = gameState.fear + '%';
+            
+            updateInventory();
+        }
+
+        function updateInventory() {
+            const container = document.getElementById('inventoryItems');
+            container.innerHTML = '';
+            gameState.inventory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.textContent = item;
+                container.appendChild(div);
+            });
+        }
+
+        function showMessage(text, callback = null) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+                if (callback) callback();
+            }, 3000);
+        }
+
+        function addBloodDrip() {
+            const scene = document.getElementById('sceneImage');
+            const drip = document.createElement('div');
+            drip.className = 'blood-drip';
+            drip.style.left = Math.random() * 100 + '%';
+            scene.appendChild(drip);
+            
+            setTimeout(() => drip.remove(), 3000);
+        }
+
+        function lightning() {
+            const flash = document.getElementById('lightning');
+            flash.style.opacity = '0.8';
+            setTimeout(() => flash.style.opacity = '0', 200);
+        }
+
+        function shake() {
+            document.querySelector('.scene').classList.add('shake');
+            setTimeout(() => document.querySelector('.scene').classList.remove('shake'), 500);
+        }
+
+        function makeChoice(choice) {
+            const currentScene = scenes[gameState.currentScene];
+            const choiceData = currentScene.choices[choice];
+            
+            if (!choiceData) return;
+            
+            // Apply choice effects
+            applyChoiceEffects(choice, gameState.currentScene);
+            
+            // Move to next scene
+            gameState.currentScene = choiceData.next;
+            
+            if (scenes[gameState.currentScene]) {
+                renderScene();
+            } else {
+                handleSpecialScene(choiceData.next);
+            }
+            
+            updateStats();
+            
+            // Random atmospheric effects
+            if (Math.random() < 0.3) {
+                setTimeout(() => {
+                    if (Math.random() < 0.5) lightning();
+                    else addBloodDrip();
+                }, 1000);
+            }
+        }
+
+        function applyChoiceEffects(choice, scene) {
+            // General fear and sanity effects
+            if (['enter', 'basement', 'investigate_shadow'].includes(choice)) {
+                gameState.fear = Math.min(100, gameState.fear + 15);
+                gameState.sanity = Math.max(0, gameState.sanity - 10);
+            }
+            
+            if (choice === 'wait') {
+                gameState.health = Math.max(0, gameState.health - 20);
+                showMessage("The storm intensifies. You're getting hypothermia!");
+            }
+            
+            if (choice === 'key') {
+                gameState.hasKey = true;
+                gameState.inventory.push('🗝️ Mysterious key');
+                gameState.fear = Math.min(100, gameState.fear + 10);
+            }
+            
+            if (choice === 'investigate_shadow') {
+                gameState.health = Math.max(0, gameState.health - 30);
+                gameState.sanity = Math.max(0, gameState.sanity - 25);
+                shake();
+                showMessage("Something claws at you from the darkness!");
+            }
+        }
+
+        function handleSpecialScene(sceneName) {
+            switch(sceneName) {
+                case 'car_wait':
+                    showMessage("The storm grows worse. Lightning strikes near your car. You must seek shelter!", () => {
+                        gameState.currentScene = 'entrance';
+                        renderScene();
+                    });
+                    break;
+                    
+                case 'foyer_key':
+                    if (gameState.hasKey) {
+                        showMessage("The key fits perfectly. The door opens with a bone-chilling creak...", () => {
+                            gameState.currentScene = 'foyer';
+                            renderScene();
+                        });
+                    } else {
+                        gameState.currentScene = 'foyer';
+                        renderScene();
+                    }
+                    break;
+                    
+                case 'shadow_encounter':
+                    showMessage("A ghostly figure lunges at you! You barely escape!", () => {
+                        gameState.currentScene = 'basement';
+                        renderScene();
+                    });
+                    break;
+                    
+                case 'game_over':
+                    showMessage("Your sanity has completely shattered. The manor claims another victim...", () => {
+                        location.reload();
+                    });
+                    break;
+                    
+                default:
+                    gameState.currentScene = 'entrance';
+                    renderScene();
+            }
+        }
+
+        function renderScene() {
+            const scene = scenes[gameState.currentScene];
+            if (!scene) return;
+            
+            document.getElementById('sceneImage').innerHTML = scene.image + '<div class="lightning" id="lightning"></div>';
+            document.getElementById('sceneDescription').textContent = scene.description;
+            
+            const choicesEl = document.getElementById('choices');
+            choicesEl.innerHTML = '';
+            
+            Object.entries(scene.choices).forEach(([key, choice]) => {
+                const button = document.createElement('button');
+                button.className = 'choice-btn';
+                button.textContent = choice.text;
+                button.onclick = () => makeChoice(key);
+                choicesEl.appendChild(button);
+            });
+            
+            // Check for game over conditions
+            if (gameState.sanity <= 0 || gameState.health <= 0) {
+                setTimeout(() => handleSpecialScene('game_over'), 1000);
+            }
+        }
+
+        // Initialize game
+        renderScene();
+        updateStats();
+        
+        // Atmospheric effects
+        setInterval(() => {
+            if (Math.random() < 0.1) {
+                lightning();
+            }
+        }, 5000);
+        
+        setInterval(() => {
+            if (Math.random() < 0.05) {
+                addBloodDrip();
+            }
+        }, 8000);
+    </script>
+</body>
+</html>
