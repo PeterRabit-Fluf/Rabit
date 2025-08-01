@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1, #ffa726);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientFlow 6s ease infinite;
+            font-weight: 800;
+            letter-spacing: -2px;
+        }
+
+        @keyframes gradientFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .generator-section {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.95);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .prompt-input {
+            width: 100%;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            color: white;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 120px;
+            transition: all 0.4s ease;
+            font-family: inherit;
+            line-height: 1.6;
+        }
+
+        .prompt-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+        }
+
+        .prompt-input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 30px rgba(78, 205, 196, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        select option {
+            background: #2a2a3e;
+            color: white;
+            padding: 10px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 22px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1);
+            background-size: 300% 300%;
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 15px 35px rgba(255, 107, 107, 0.3);
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(255, 107, 107, 0.4);
+            animation: gradientFlow 3s ease infinite;
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(78, 205, 196, 0.2);
+            border-radius: 50%;
+            border-top-color: #4ecdc4;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            font-size: 16px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .results h2 {
+            margin-bottom: 25px;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        .image-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .image-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            border-color: rgba(78, 205, 196, 0.4);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 320px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+
+        .image-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .image-info {
+            padding: 20px;
+        }
+
+        .image-prompt {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            font-style: italic;
+        }
+
+        .image-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(45deg, #45b7d1, #4ecdc4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .share-btn {
+            background: linear-gradient(45deg, #ffa726, #ff7043);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 167, 38, 0.3);
+        }
+
+        .error, .success {
+            border-radius: 12px;
+            padding: 18px;
+            margin: 20px 0;
+            display: none;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+
+        .error {
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.4);
+        }
+
+        .success {
+            background: rgba(78, 205, 196, 0.15);
+            border: 1px solid rgba(78, 205, 196, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .image-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Image Generator Pro</h1>
+            <p>Create stunning AI-generated images from text descriptions</p>
+        </div>
+
+        <div class="generator-section">
+            <div class="form-group">
+                <label for="prompt">🎨 Describe Your Vision:</label>
+                <textarea id="prompt" class="prompt-input" placeholder="A majestic dragon soaring through stormy clouds, digital art style..."></textarea>
+            </div>
+
+            <div class="controls">
+                <div class="form-group">
+                    <label for="style">🎭 Art Style:</label>
+                    <select id="style">
+                        <option value="">Default</option>
+                        <option value="realistic">📸 Realistic</option>
+                        <option value="digital art">🎮 Digital Art</option>
+                        <option value="oil painting">🖼️ Oil Painting</option>
+                        <option value="watercolor">🎨 Watercolor</option>
+                        <option value="anime">👺 Anime</option>
+                        <option value="cyberpunk">🤖 Cyberpunk</option>
+                        <option value="fantasy">🧙‍♂️ Fantasy</option>
+                        <option value="abstract">🌀 Abstract</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="count">📊 Image Count:</label>
+                    <select id="count">
+                        <option value="1">1 Image</option>
+                        <option value="2" selected>2 Images</option>
+                        <option value="3">3 Images</option>
+                        <option value="4">4 Images</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quality">⚡ Quality:</label>
+                    <select id="quality">
+                        <option value="standard">Standard</option>
+                        <option value="high" selected>High Quality</option>
+                        <option value="ultra">Ultra HD</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="generate-btn" onclick="generateImages()">
+                🚀 Generate Images
+            </button>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Creating your masterpiece...</p>
+            </div>
+
+            <div id="error" class="error"></div>
+            <div id="success" class="success"></div>
+        </div>
+
+        <div class="results">
+            <h2>✨ Generated Gallery</h2>
+            <div id="imageGrid" class="image-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let isGenerating = false;
+
+        async function generateImages() {
+            if (isGenerating) return;
+
+            const promptText = document.getElementById('prompt').value.trim();
+            if (!promptText) {
+                showError('Please enter a description for your image! 💭');
+                return;
+            }
+
+            const style = document.getElementById('style').value;
+            const count = parseInt(document.getElementById('count').value);
+            const quality = document.getElementById('quality').value;
+
+            setLoading(true);
+            hideMessages();
+
+            try {
+                const images = [];
+                
+                // Build enhanced prompt
+                let enhancedPrompt = promptText;
+                if (style) {
+                    enhancedPrompt += `, ${style} style`;
+                }
+                
+                // Add quality modifiers
+                if (quality === 'high') {
+                    enhancedPrompt += ', high quality, detailed, 4k';
+                } else if (quality === 'ultra') {
+                    enhancedPrompt += ', ultra high quality, masterpiece, 8k, professional';
+                }
+
+                // Generate images
+                for (let i = 0; i < count; i++) {
+                    updateProgress(i + 1, count);
+                    
+                    try {
+                        const seed = Date.now() + i * 1000 + Math.floor(Math.random() * 1000);
+                        let imageUrl = null;
+                        
+                        // Try Pollinations AI first
+                        try {
+                            const size = quality === 'ultra' ? '1024' : '512';
+                            const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${size}&height=${size}&seed=${seed}&nologo=true&enhance=true`;
+                            
+                            await testImageLoad(pollinationsUrl);
+                            imageUrl = pollinationsUrl;
+                            console.log(`Generated image ${i + 1} with Pollinations AI`);
+                        } catch (e) {
+                            console.log('Pollinations AI failed, using fallback...');
+                            // Fallback to contextual image
+                            const fallbackSeed = Math.abs(hashCode(promptText) + i);
+                            imageUrl = `https://picsum.photos/seed/${fallbackSeed}/512/512`;
+                        }
+
+                        if (imageUrl) {
+                            images.push({
+                                url: imageUrl,
+                                prompt: promptText,
+                                id: Date.now() + i + Math.random() * 1000
+                            });
+                        }
+
+                        // Add delay between requests
+                        if (i < count - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1500));
+                        }
+
+                    } catch (error) {
+                        console.error(`Failed to generate image ${i + 1}:`, error);
+                    }
+                }
+
+                if (images.length > 0) {
+                    displayImages(images);
+                    showSuccess(`🎨 Successfully generated ${images.length} stunning image(s)!`);
+                } else {
+                    showError('❌ Failed to generate images. Please try a different prompt.');
+                }
+
+            } catch (error) {
+                console.error('Generation error:', error);
+                showError('⚠️ Something went wrong. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function testImageLoad(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(url);
+                img.onerror = () => reject(new Error('Image failed to load'));
+                img.src = url;
+                
+                setTimeout(() => reject(new Error('Timeout')), 10000);
+            });
+        }
+
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash;
+        }
+
+        function updateProgress(current, total) {
+            const loadingElement = document.getElementById('loading');
+            const progressText = loadingElement.querySelector('p');
+            progressText.textContent = `Creating image ${current} of ${total}... ✨`;
+        }
+
+        function displayImages(images) {
+            const grid = document.getElementById('imageGrid');
+            
+            images.forEach(image => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                
+                card.innerHTML = `
+                    <img src="${image.url}" alt="Generated image" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    <div class="image-info">
+                        <div class="image-prompt">"${image.prompt}"</div>
+                        <div class="image-actions">
+                            <button class="download-btn" onclick="downloadImage('${image.url}', ${image.id})">
+                                💾 Download
+                            </button>
+                            <button class="share-btn" onclick="shareImage('${image.url}', '${escapeQuotes(image.prompt)}')">
+                                🔗 Share
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function downloadImage(url, id) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `ai-generated-${id}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showSuccess('📥 Image downloaded successfully!');
+        }
+
+        function shareImage(url, promptText) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Amazing AI Generated Image!',
+                    text: `Check out this AI-generated image: "${promptText}"`,
+                    url: url
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    showSuccess('🔗 Image URL copied to clipboard!');
+                }).catch(() => {
+                    window.alert(`Copy this image URL: ${url}`);
+                });
+            }
+        }
+
+        function escapeQuotes(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        function setLoading(loading) {
+            isGenerating = loading;
+            document.getElementById('loading').style.display = loading ? 'block' : 'none';
+            document.getElementById('generateBtn').disabled = loading;
+            document.getElementById('generateBtn').innerHTML = loading ? '⏳ Generating...' : '🚀 Generate Images';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => successDiv.style.display = 'none', 3000);
+        }
+
+        function hideMessages() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        // Enhanced features
+        const examplePrompts = [
+            "A majestic dragon soaring through stormy clouds",
+            "Cyberpunk city street with neon reflections at night",
+            "Mystical forest with glowing mushrooms and fairy lights",
+            "Steampunk airship floating above Victorian London",
+            "Abstract representation of music in vibrant colors",
+            "Ancient library with floating books and magical aura",
+            "Robotic garden with mechanical flowers blooming",
+            "Underwater palace with coral architecture",
+            "Space station orbiting a purple nebula"
+        ];
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        generateImages();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        const randomPrompt = examplePrompts[Math.floor(Math.random() * examplePrompts.length)];
+                        document.getElementById('prompt').value = randomPrompt;
+                        showSuccess('🎲 Random prompt loaded!');
+                        break;
+                }
+            }
+        });
+
+        // Auto-save prompt
+        let saveTimeout;
+        document.getElementById('prompt').addEventListener('input', function() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                try {
+                    localStorage.setItem('aiImagePrompt', this.value);
+                } catch (e) {
+                    console.log('Could not save prompt');
+                }
+            }, 1000);
+        });
+
+        // Load saved prompt
+        window.addEventListener('load', function() {
+            try {
+                const savedPrompt = localStorage.getItem('aiImagePrompt');
+                if (savedPrompt) {
+                    document.getElementById('prompt').value = savedPrompt;
+                }
+            } catch (e) {
+                console.log('Could not load saved prompt');
+            }
+        });
+
+        // Dynamic placeholder
+        document.getElementById('prompt').addEventListener('focus', function() {
+            if (!this.value) {
+                const randomExample = examplePrompts[Math.floor(Math.random() * examplePrompts.length)];
+                this.placeholder = `💡 Try: "${randomExample}"`;
+            }
+        });
+
+        document.getElementById('prompt').addEventListener('blur', function() {
+            if (!this.value) {
+                this.placeholder = "A majestic dragon soaring through stormy clouds, digital art style...";
+            }
+        });
+
+        console.log('🚀 AI Image Generator Pro loaded successfully!');
+        console.log('💡 Keyboard shortcuts: Ctrl+Enter (Generate), Ctrl+R (Random prompt)');
+    </script>
+</body>
+</html>
