@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Text to Speech</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --dark-gradient: linear-gradient(135deg, #434343 0%, #000000 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #333;
+            --text-secondary: #666;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --glow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+
+        body {
+            font-family: 'SF Pro Display', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+            filter: blur(1px);
+        }
+
+        .shape:nth-child(1) { width: 80px; height: 80px; left: 10%; animation-delay: 0s; }
+        .shape:nth-child(2) { width: 120px; height: 120px; left: 80%; animation-delay: 5s; }
+        .shape:nth-child(3) { width: 60px; height: 60px; left: 50%; animation-delay: 10s; }
+        .shape:nth-child(4) { width: 100px; height: 100px; left: 20%; animation-delay: 15s; }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        .container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            max-width: 700px;
+            width: 100%;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            z-index: 1;
+        }
+
+        .container:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 3rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); }
+            100% { text-shadow: 2px 2px 20px rgba(255, 255, 255, 0.5); }
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: white;
+            font-size: 1rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        textarea {
+            width: 100%;
+            height: 160px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            font-size: 16px;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+            line-height: 1.6;
+        }
+
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: var(--glow);
+            transform: scale(1.02);
+        }
+
+        .char-counter {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .control-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .control-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .control-value {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: var(--glow);
+        }
+
+        select option {
+            background: #333;
+            color: white;
+        }
+
+        .range-container {
+            position: relative;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: var(--glow);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            min-width: 140px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-gradient);
+            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success-gradient);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-warning {
+            background: var(--warning-gradient);
+            box-shadow: 0 8px 25px rgba(252, 182, 159, 0.4);
+            color: #333;
+            text-shadow: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+        }
+
+        .progress-container {
+            margin-bottom: 25px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-container.show {
+            opacity: 1;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        }
+
+        .status.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .status.speaking {
+            background: rgba(102, 126, 234, 0.2);
+            color: white;
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+
+        .status.paused {
+            background: rgba(245, 87, 108, 0.2);
+            color: white;
+            border-color: rgba(245, 87, 108, 0.4);
+        }
+
+        .status.stopped {
+            background: rgba(79, 172, 254, 0.2);
+            color: white;
+            border-color: rgba(79, 172, 254, 0.4);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .feature-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+        }
+
+        .shortcuts {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            align-items: end;
+            height: 60px;
+            margin: 20px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .visualizer.active {
+            opacity: 1;
+        }
+
+        .bar {
+            width: 4px;
+            margin: 0 2px;
+            background: white;
+            border-radius: 2px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .bar:nth-child(odd) { animation-delay: 0.1s; }
+        .bar:nth-child(even) { animation-delay: 0.3s; }
+
+        @keyframes pulse {
+            0%, 100% { height: 10px; opacity: 0.3; }
+            50% { height: 40px; opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            textarea {
+                height: 120px;
+                padding: 15px;
+            }
+
+            .control-card {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Neural Voice</h1>
+            <p class="subtitle">Advanced Text-to-Speech with AI-powered controls</p>
+        </div>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label for="textInput">✨ Enter your text:</label>
+                <textarea id="textInput" placeholder="Type or paste your text here... Try different languages, emotions, and styles!">Welcome to Neural Voice! This advanced text-to-speech engine offers premium voice synthesis with customizable parameters. Adjust the speed, pitch, and volume to create the perfect voice experience. Try different voices and languages for amazing results!</textarea>
+                <div class="char-counter" id="charCounter">0 / 1000</div>
+            </div>
+        </div>
+
+        <div class="controls-grid">
+            <div class="control-card">
+                <div class="control-header">
+                    <span class="control-label">🗣️ Voice</span>
+                </div>
+                <select id="voiceSelect">
+                    <option value="">Loading premium voices...</option>
+                </select>
+            </div>
+
+            <div class="control-card">
+                <div class="control-header">
+                    <span class="control-label">⚡ Speed</span>
+                    <span class="control-value" id="rateValue">1.0x</span>
+                </div>
+                <div class="range-container">
+                    <input type="range" id="rateRange" min="0.1" max="3.0" step="0.1" value="1.0">
+                    <div class="range-labels">
+                        <span>Slow</span>
+                        <span>Normal</span>
+                        <span>Fast</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <div class="control-header">
+                    <span class="control-label">🎵 Pitch</span>
+                    <span class="control-value" id="pitchValue">1.0x</span>
+                </div>
+                <div class="range-container">
+                    <input type="range" id="pitchRange" min="0.1" max="2.5" step="0.1" value="1.0">
+                    <div class="range-labels">
+                        <span>Deep</span>
+                        <span>Normal</span>
+                        <span>High</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <div class="control-header">
+                    <span class="control-label">🔊 Volume</span>
+                    <span class="control-value" id="volumeValue">100%</span>
+                </div>
+                <div class="range-container">
+                    <input type="range" id="volumeRange" min="0.0" max="1.0" step="0.05" value="1.0">
+                    <div class="range-labels">
+                        <span>Quiet</span>
+                        <span>Normal</span>
+                        <span>Loud</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="visualizer" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText"></div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="speakBtn" class="btn btn-primary">🎵 Speak</button>
+            <button id="pauseBtn" class="btn btn-secondary" disabled>⏸️ Pause</button>
+            <button id="stopBtn" class="btn btn-success" disabled>⏹️ Stop</button>
+            <button id="downloadBtn" class="btn btn-warning" disabled>💾 Save Audio</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <div class="feature-text">Multi-language Support</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎛️</div>
+                <div class="feature-text">Advanced Controls</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <div class="feature-text">Mobile Optimized</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-text">Real-time Processing</div>
+            </div>
+        </div>
+
+        <div class="shortcuts">
+            <strong>⌨️ Keyboard Shortcuts:</strong> 
+            Ctrl+Enter (Speak) • Ctrl+Space (Pause/Resume) • Ctrl+Escape (Stop) • Ctrl+S (Save)
+        </div>
+    </div>
+
+    <script>
+        class AdvancedTextToSpeech {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.utterance = null;
+                this.voices = [];
+                this.isPaused = false;
+                this.isPlaying = false;
+                this.currentProgress = 0;
+                this.textChunks = [];
+                this.currentChunk = 0;
+                
+                this.initializeElements();
+                this.loadVoices();
+                this.attachEventListeners();
+                this.updateCharCounter();
+                this.initializePresets();
+            }
+
+            initializeElements() {
+                this.textInput = document.getElementById('textInput');
+                this.voiceSelect = document.getElementById('voiceSelect');
+                this.rateRange = document.getElementById('rateRange');
+                this.pitchRange = document.getElementById('pitchRange');
+                this.volumeRange = document.getElementById('volumeRange');
+                this.rateValue = document.getElementById('rateValue');
+                this.pitchValue = document.getElementById('pitchValue');
+                this.volumeValue = document.getElementById('volumeValue');
+                this.speakBtn = document.getElementById('speakBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.status = document.getElementById('status');
+                this.charCounter = document.getElementById('charCounter');
+                this.visualizer = document.getElementById('visualizer');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+            }
+
+            loadVoices() {
+                const updateVoices = () => {
+                    this.voices = this.synth.getVoices();
+                    this.populateVoiceSelect();
+                };
+
+                updateVoices();
+                if (this.synth.onvoiceschanged !== undefined) {
+                    this.synth.onvoiceschanged = updateVoices;
+                }
+
+                // Retry after a delay if no voices are loaded initially
+                setTimeout(() => {
+                    if (this.voices.length === 0) {
+                        updateVoices();
+                    }
+                }, 1000);
+            }
+
+            populateVoiceSelect() {
+                this.voiceSelect.innerHTML = '';
+                
+                if (this.voices.length === 0) {
+                    this.voiceSelect.innerHTML = '<option value="">No voices available</option>';
+                    return;
+                }
+
+                // Main languages to prioritize
+                const mainLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'];
+                const languageNames = {
+                    'en': 'English',
+                    'es': 'Spanish', 
+                    'fr': 'French',
+                    'de': 'German',
+                    'it': 'Italian',
+                    'pt': 'Portuguese',
+                    'ru': 'Russian',
+                    'zh': 'Chinese',
+                    'ja': 'Japanese',
+                    'ko': 'Korean'
+                };
+
+                // Group voices by language, prioritizing English
+                const voiceGroups = {};
+                const otherVoices = [];
+
+                this.voices.forEach((voice, index) => {
+                    const lang = voice.lang.split('-')[0];
+                    
+                    if (mainLanguages.includes(lang)) {
+                        if (!voiceGroups[lang]) {
+                            voiceGroups[lang] = [];
+                        }
+                        voiceGroups[lang].push({ voice, index });
+                    } else {
+                        otherVoices.push({ voice, index });
+                    }
+                });
+
+                // Add English voices first
+                if (voiceGroups['en']) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = '🇺🇸 English Voices';
+                    
+                    voiceGroups['en'].forEach(({ voice, index }) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        const quality = voice.localService ? '🔊' : '☁️';
+                        const region = voice.lang.includes('GB') ? '🇬🇧' : voice.lang.includes('AU') ? '🇦🇺' : '🇺🇸';
+                        option.textContent = `${quality} ${region} ${voice.name}`;
+                        if (voice.default || voice.lang.includes('en')) {
+                            option.selected = true;
+                        }
+                        optgroup.appendChild(option);
+                    });
+                    
+                    this.voiceSelect.appendChild(optgroup);
+                }
+
+                // Add other main languages
+                mainLanguages.forEach(lang => {
+                    if (lang !== 'en' && voiceGroups[lang]) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = `${languageNames[lang]} Voices`;
+                        
+                        voiceGroups[lang].forEach(({ voice, index }) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            const quality = voice.localService ? '🔊' : '☁️';
+                            option.textContent = `${quality} ${voice.name}`;
+                            optgroup.appendChild(option);
+                        });
+                        
+                        this.voiceSelect.appendChild(optgroup);
+                    }
+                });
+
+                // Add other languages if any
+                if (otherVoices.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = 'Other Languages';
+                    
+                    otherVoices.forEach(({ voice, index }) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        const quality = voice.localService ? '🔊' : '☁️';
+                        option.textContent = `${quality} ${voice.name} (${voice.lang})`;
+                        optgroup.appendChild(option);
+                    });
+                    
+                    this.voiceSelect.appendChild(optgroup);
+                }
+            }
+
+            initializePresets() {
+                // Add preset configurations
+                this.presets = {
+                    normal: { rate: 1.0, pitch: 1.0, volume: 1.0 },
+                    slow: { rate: 0.7, pitch: 1.0, volume: 1.0 },
+                    fast: { rate: 1.5, pitch: 1.0, volume: 1.0 },
+                    deep: { rate: 0.9, pitch: 0.5, volume: 1.0 },
+                    high: { rate: 1.1, pitch: 1.8, volume: 1.0 },
+                    whisper: { rate: 0.8, pitch: 0.8, volume: 0.4 }
+                };
+            }
+
+            attachEventListeners() {
+                // Button listeners
+                this.speakBtn.addEventListener('click', () => this.speak());
+                this.pauseBtn.addEventListener('click', () => this.pauseResume());
+                this.stopBtn.addEventListener('click', () => this.stop());
+                this.downloadBtn.addEventListener('click', () => this.downloadAudio());
+
+                // Range input listeners with enhanced feedback
+                this.rateRange.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.rateValue.textContent = `${value}x`;
+                    this.updateRangeBackground(e.target);
+                });
+
+                this.pitchRange.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.pitchValue.textContent = `${value}x`;
+                    this.updateRangeBackground(e.target);
+                });
+
+                this.volumeRange.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.volumeValue.textContent = `${Math.round(value * 100)}%`;
+                    this.updateRangeBackground(e.target);
+                });
+
+                // Text input listeners
+                this.textInput.addEventListener('input', () => {
+                    this.updateCharCounter();
+                    this.validateInput();
+                });
+
+                this.textInput.addEventListener('paste', () => {
+                    setTimeout(() => this.updateCharCounter(), 10);
+                });
+
+                // Enhanced keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch (e.key) {
+                            case 'Enter':
+                                e.preventDefault();
+                                this.speak();
+                                break;
+                            case ' ':
+                                e.preventDefault();
+                                this.pauseResume();
+                                break;
+                            case 'Escape':
+                                e.preventDefault();
+                                this.stop();
+                                break;
+                            case 's':
+                                e.preventDefault();
+                                this.downloadAudio();
+                                break;
+                            case '1':
+                                e.preventDefault();
+                                this.applyPreset('normal');
+                                break;
+                            case '2':
+                                e.preventDefault();
+                                this.applyPreset('slow');
+                                break;
+                            case '3':
+                                e.preventDefault();
+                                this.applyPreset('fast');
+                                break;
+                        }
+                    }
+                });
+
+                // Voice selection with preview
+                this.voiceSelect.addEventListener('change', () => {
+                    if (this.voiceSelect.value && !this.isPlaying) {
+                        this.previewVoice();
+                    }
+                });
+            }
+
+            updateRangeBackground(range) {
+                const value = (range.value - range.min) / (range.max - range.min) * 100;
+                range.style.background = `linear-gradient(to right, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.8) ${value}%, rgba(255,255,255,0.3) ${value}%, rgba(255,255,255,0.3) 100%)`;
+            }
+
+            updateCharCounter() {
+                const length = this.textInput.value.length;
+                const maxLength = 1000;
+                this.charCounter.textContent = `${length} / ${maxLength}`;
+                
+                if (length > maxLength * 0.9) {
+                    this.charCounter.style.color = '#ff6b6b';
+                } else if (length > maxLength * 0.7) {
+                    this.charCounter.style.color = '#ffd93d';
+                } else {
+                    this.charCounter.style.color = 'rgba(255, 255, 255, 0.6)';
+                }
+            }
+
+            validateInput() {
+                const text = this.textInput.value.trim();
+                const isValid = text.length > 0 && text.length <= 1000;
+                this.speakBtn.disabled = !isValid || this.isPlaying;
+                return isValid;
+            }
+
+            previewVoice() {
+                if (this.voices.length === 0 || this.isPlaying) return;
+                
+                const previewText = "Hello, this is a voice preview.";
+                const utterance = new SpeechSynthesisUtterance(previewText);
+                
+                if (this.voiceSelect.value !== '') {
+                    utterance.voice = this.voices[this.voiceSelect.value];
+                }
+                
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 0.7;
+                
+                this.synth.speak(utterance);
+                this.showStatus('Voice preview...', 'speaking', 2000);
+            }
+
+            applyPreset(presetName) {
+                if (!this.presets[presetName]) return;
+                
+                const preset = this.presets[presetName];
+                this.rateRange.value = preset.rate;
+                this.pitchRange.value = preset.pitch;
+                this.volumeRange.value = preset.volume;
+                
+                this.rateValue.textContent = `${preset.rate}x`;
+                this.pitchValue.textContent = `${preset.pitch}x`;
+                this.volumeValue.textContent = `${Math.round(preset.volume * 100)}%`;
+                
+                this.updateRangeBackground(this.rateRange);
+                this.updateRangeBackground(this.pitchRange);
+                this.updateRangeBackground(this.volumeRange);
+                
+                this.showStatus(`Applied ${presetName} preset`, 'stopped', 2000);
+            }
+
+            splitTextIntoChunks(text) {
+                // Split long text into manageable chunks for better progress tracking
+                const sentences = text.match(/[^\.!?]+[\.!?]+/g) || [text];
+                const chunks = [];
+                let currentChunk = '';
+                
+                sentences.forEach(sentence => {
+                    if ((currentChunk + sentence).length > 200 && currentChunk) {
+                        chunks.push(currentChunk.trim());
+                        currentChunk = sentence;
+                    } else {
+                        currentChunk += sentence;
+                    }
+                });
+                
+                if (currentChunk.trim()) {
+                    chunks.push(currentChunk.trim());
+                }
+                
+                return chunks.length > 0 ? chunks : [text];
+            }
+
+            speak() {
+                if (!this.validateInput()) {
+                    this.showStatus('Please enter valid text (1-1000 characters)', 'stopped');
+                    return;
+                }
+
+                const text = this.textInput.value.trim();
+
+                if (this.isPaused) {
+                    this.synth.resume();
+                    this.isPaused = false;
+                    this.isPlaying = true;
+                    this.updateButtons(false, true, true, false);
+                    this.showStatus('Resumed speaking...', 'speaking');
+                    this.visualizer.classList.add('active');
+                    return;
+                }
+
+                this.stop();
+                this.textChunks = this.splitTextIntoChunks(text);
+                this.currentChunk = 0;
+                this.speakNextChunk();
+            }
+
+            speakNextChunk() {
+                if (this.currentChunk >= this.textChunks.length) {
+                    this.onSpeechComplete();
+                    return;
+                }
+
+                const chunk = this.textChunks[this.currentChunk];
+                this.utterance = new SpeechSynthesisUtterance(chunk);
+                
+                // Set voice
+                if (this.voiceSelect.value !== '') {
+                    this.utterance.voice = this.voices[this.voiceSelect.value];
+                }
+
+                // Set properties
+                this.utterance.rate = parseFloat(this.rateRange.value);
+                this.utterance.pitch = parseFloat(this.pitchRange.value);
+                this.utterance.volume = parseFloat(this.volumeRange.value);
+
+                // Event listeners
+                this.utterance.onstart = () => {
+                    if (this.currentChunk === 0) {
+                        this.isPlaying = true;
+                        this.updateButtons(false, true, true, false);
+                        this.showStatus('Speaking...', 'speaking');
+                        this.visualizer.classList.add('active');
+                        this.progressContainer.classList.add('show');
+                    }
+                    this.updateProgress();
+                };
+
+                this.utterance.onend = () => {
+                    this.currentChunk++;
+                    setTimeout(() => this.speakNextChunk(), 100); // Small delay between chunks
+                };
+
+                this.utterance.onerror = (event) => {
+                    this.onSpeechError(event);
+                };
+
+                this.synth.speak(this.utterance);
+            }
+
+            onSpeechComplete() {
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.updateButtons(true, false, false, true);
+                this.showStatus('Speech completed successfully!', 'stopped');
+                this.visualizer.classList.remove('active');
+                this.progressContainer.classList.remove('show');
+                this.currentProgress = 0;
+                this.updateProgress();
+            }
+
+            onSpeechError(event) {
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.updateButtons(true, false, false, false);
+                this.showStatus(`Speech error: ${event.error}`, 'stopped');
+                this.visualizer.classList.remove('active');
+                this.progressContainer.classList.remove('show');
+            }
+
+            updateProgress() {
+                if (this.textChunks.length > 0) {
+                    const progress = ((this.currentChunk + 1) / this.textChunks.length) * 100;
+                    this.progressFill.style.width = `${Math.min(progress, 100)}%`;
+                    this.progressText.textContent = `Speaking chunk ${this.currentChunk + 1} of ${this.textChunks.length}`;
+                }
+            }
+
+            pauseResume() {
+                if (this.synth.speaking && !this.isPaused) {
+                    this.synth.pause();
+                    this.isPaused = true;
+                    this.isPlaying = false;
+                    this.updateButtons(true, true, true, false);
+                    this.showStatus('Speech paused. Click Speak to resume.', 'paused');
+                    this.visualizer.classList.remove('active');
+                }
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.isPaused = false;
+                this.isPlaying = false;
+                this.currentChunk = 0;
+                this.textChunks = [];
+                this.updateButtons(true, false, false, false);
+                this.showStatus('Speech stopped.', 'stopped');
+                this.visualizer.classList.remove('active');
+                this.progressContainer.classList.remove('show');
+                this.currentProgress = 0;
+                this.updateProgress();
+            }
+
+            async downloadAudio() {
+                const text = this.textInput.value.trim();
+                if (!text) {
+                    this.showStatus('Please enter text to generate audio', 'stopped');
+                    return;
+                }
+
+                this.showStatus('🎵 Starting audio capture...', 'speaking');
+
+                try {
+                    let stream = null;
+                    let mediaRecorder = null;
+                    let recordingTimeout = null;
+                    
+                    // Method 1: Try to capture system audio with getDisplayMedia
+                    try {
+                        this.showStatus('🖥️ Please select "Share system audio" when prompted', 'speaking');
+                        stream = await navigator.mediaDevices.getDisplayMedia({
+                            audio: {
+                                echoCancellation: false,
+                                noiseSuppression: false,
+                                autoGainControl: false,
+                                sampleRate: 44100
+                            },
+                            video: false
+                        });
+                        this.showStatus('✅ System audio selected - high quality capture!', 'speaking');
+                    } catch (displayError) {
+                        console.log('System audio failed:', displayError.message);
+                        
+                        // Method 2: Fallback to microphone
+                        try {
+                            this.showStatus('🎤 Using microphone - turn up speakers', 'speaking');
+                            stream = await navigator.mediaDevices.getUserMedia({
+                                audio: {
+                                    echoCancellation: false,
+                                    noiseSuppression: false,
+                                    autoGainControl: false,
+                                    sampleRate: 44100
+                                }
+                            });
+                        } catch (micError) {
+                            console.error('Microphone failed:', micError.message);
+                            throw new Error('No audio input available - please allow microphone or system audio access');
+                        }
+                    }
+
+                    // Check if MediaRecorder is supported
+                    if (!window.MediaRecorder) {
+                        throw new Error('MediaRecorder not supported in this browser');
+                    }
+
+                    // Determine best supported MIME type
+                    let mimeType = 'audio/webm;codecs=opus';
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=pcm')) {
+                        mimeType = 'audio/webm;codecs=pcm';
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        mimeType = 'audio/mp4';
+                    } else if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = 'audio/webm';
+                    }
+
+                    // Set up MediaRecorder
+                    mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: mimeType,
+                        audioBitsPerSecond: 128000
+                    });
+                    
+                    const chunks = [];
+                    let recordingStarted = false;
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            chunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        recordingStarted = false;
+                        
+                        // Clean up resources
+                        if (stream) {
+                            stream.getTracks().forEach(track => {
+                                if (track.readyState === 'live') {
+                                    track.stop();
+                                }
+                            });
+                        }
+                        
+                        if (recordingTimeout) {
+                            clearTimeout(recordingTimeout);
+                        }
+                        
+                        if (chunks.length > 0) {
+                            this.showStatus('🔄 Processing audio...', 'speaking');
+                            
+                            const audioBlob = new Blob(chunks, { type: mimeType });
+                            
+                            // Check if blob has content
+                            if (audioBlob.size === 0) {
+                                this.showStatus('❌ No audio data captured', 'stopped');
+                                return;
+                            }
+                            
+                            // Convert to WAV if possible
+                            try {
+                                const wavBlob = await this.webmToWav(audioBlob);
+                                this.downloadFile(wavBlob, 'wav');
+                                this.showStatus('✅ Real TTS audio downloaded as WAV!', 'stopped');
+                            } catch (conversionError) {
+                                console.log('WAV conversion failed:', conversionError.message);
+                                // Download as original format if conversion fails
+                                const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                                this.downloadFile(audioBlob, extension);
+                                this.showStatus(`✅ Audio downloaded as ${extension.toUpperCase()}`, 'stopped');
+                            }
+                        } else {
+                            this.showStatus('❌ No audio data captured - try increasing volume', 'stopped');
+                        }
+                    };
+
+                    mediaRecorder.onerror = (event) => {
+                        console.error('MediaRecorder error:', event.error);
+                        this.showStatus(`Recording error: ${event.error.name}`, 'stopped');
+                        
+                        // Clean up on error
+                        if (stream) {
+                            stream.getTracks().forEach(track => track.stop());
+                        }
+                    };
+
+                    // Start the recording process
+                    this.showStatus('⏱️ Starting in 2 seconds...', 'speaking');
+                    
+                    setTimeout(() => {
+                        try {
+                            mediaRecorder.start(1000); // Collect data every second
+                            recordingStarted = true;
+                            
+                            // Create and start TTS
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            
+                            if (this.voiceSelect.value !== '' && this.voices[this.voiceSelect.value]) {
+                                utterance.voice = this.voices[this.voiceSelect.value];
+                            }
+                            
+                            utterance.rate = parseFloat(this.rateRange.value) || 1.0;
+                            utterance.pitch = parseFloat(this.pitchRange.value) || 1.0;
+                            utterance.volume = parseFloat(this.volumeRange.value) || 1.0;
+
+                            utterance.onstart = () => {
+                                this.showStatus('🔴 Recording TTS speech...', 'speaking');
+                            };
+
+                            utterance.onend = () => {
+                                // Stop recording 1.5 seconds after speech ends
+                                setTimeout(() => {
+                                    if (recordingStarted && mediaRecorder && mediaRecorder.state === 'recording') {
+                                        mediaRecorder.stop();
+                                    }
+                                }, 1500);
+                            };
+
+                            utterance.onerror = (event) => {
+                                console.error('TTS error:', event.error);
+                                this.showStatus(`TTS Error: ${event.error}`, 'stopped');
+                                if (recordingStarted && mediaRecorder && mediaRecorder.state === 'recording') {
+                                    mediaRecorder.stop();
+                                }
+                            };
+
+                            // Start speaking
+                            this.synth.cancel(); // Clear any existing speech
+                            this.synth.speak(utterance);
+                            
+                        } catch (startError) {
+                            console.error('Failed to start recording:', startError);
+                            this.showStatus('❌ Failed to start recording', 'stopped');
+                            if (stream) {
+                                stream.getTracks().forEach(track => track.stop());
+                            }
+                        }
+                        
+                    }, 2000);
+
+                    // Safety timeout - stop recording after 2 minutes max
+                    recordingTimeout = setTimeout(() => {
+                        if (recordingStarted && mediaRecorder && mediaRecorder.state === 'recording') {
+                            console.log('Recording timeout - stopping');
+                            mediaRecorder.stop();
+                        }
+                    }, 120000);
+
+                } catch (error) {
+                    console.error('Audio capture setup failed:', error);
+                    
+                    let errorMessage = '❌ Audio capture failed: ';
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage += 'Permission denied. Please allow audio access.';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += 'No audio device found.';
+                    } else if (error.name === 'NotSupportedError') {
+                        errorMessage += 'Audio capture not supported in this browser.';
+                    } else {
+                        errorMessage += error.message || 'Unknown error occurred.';
+                    }
+                    
+                    this.showStatus(errorMessage, 'stopped');
+                }
+            }
+
+            async webmToWav(webmBlob) {
+                const arrayBuffer = await webmBlob.arrayBuffer();
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                return this.audioBufferToWav(audioBuffer);
+            }
+
+            downloadFile(blob, extension) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `tts-audio-${Date.now()}.${extension}`;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                URL.revokeObjectURL(url);
+            }
+
+            async convertBlobToWav(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                        try {
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            const arrayBuffer = reader.result;
+                            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                            const wavBlob = this.audioBufferToWav(audioBuffer);
+                            resolve(wavBlob);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(blob);
+                });
+            }
+
+            audioBufferToWav(buffer) {
+                const length = buffer.length;
+                const numberOfChannels = Math.min(buffer.numberOfChannels, 2); // Limit to stereo
+                const sampleRate = buffer.sampleRate;
+                const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+                const view = new DataView(arrayBuffer);
+                
+                // Helper functions
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                
+                const writeUint32 = (offset, value) => {
+                    view.setUint32(offset, value, true);
+                };
+                
+                const writeUint16 = (offset, value) => {
+                    view.setUint16(offset, value, true);
+                };
+                
+                // WAV header
+                writeString(0, 'RIFF');
+                writeUint32(4, 36 + length * numberOfChannels * 2);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                writeUint32(16, 16);
+                writeUint16(20, 1);
+                writeUint16(22, numberOfChannels);
+                writeUint32(24, sampleRate);
+                writeUint32(28, sampleRate * numberOfChannels * 2);
+                writeUint16(32, numberOfChannels * 2);
+                writeUint16(34, 16);
+                writeString(36, 'data');
+                writeUint32(40, length * numberOfChannels * 2);
+                
+                // Convert float samples to 16-bit PCM
+                let offset = 44;
+                for (let i = 0; i < length; i++) {
+                    for (let channel = 0; channel < numberOfChannels; channel++) {
+                        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+                        const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                        view.setInt16(offset, intSample, true);
+                        offset += 2;
+                    }
+                }
+                
+                return new Blob([arrayBuffer], { type: 'audio/wav' });
+            }
+
+            updateButtons(speak, pause, stop, download) {
+                this.speakBtn.disabled = !speak;
+                this.pauseBtn.disabled = !pause;
+                this.stopBtn.disabled = !stop;
+                this.downloadBtn.disabled = !download;
+                
+                // Update button text based on state
+                if (this.isPaused) {
+                    this.speakBtn.innerHTML = '▶️ Resume';
+                } else {
+                    this.speakBtn.innerHTML = '🎵 Speak';
+                }
+            }
+
+            showStatus(message, type, duration = 5000) {
+                this.status.textContent = message;
+                this.status.className = `status show ${type}`;
+                
+                // Auto-hide after duration
+                setTimeout(() => {
+                    this.status.classList.remove('show');
+                }, duration);
+            }
+
+            // Advanced features
+            detectLanguage(text) {
+                // Simple language detection based on character patterns
+                const patterns = {
+                    chinese: /[\u4e00-\u9fff]/,
+                    japanese: /[\u3040-\u309f\u30a0-\u30ff]/,
+                    korean: /[\uac00-\ud7af]/,
+                    arabic: /[\u0600-\u06ff]/,
+                    cyrillic: /[\u0400-\u04ff]/
+                };
+                
+                for (const [lang, pattern] of Object.entries(patterns)) {
+                    if (pattern.test(text)) {
+                        return lang;
+                    }
+                }
+                return 'latin';
+            }
+
+            estimateSpeechDuration(text, rate) {
+                // Rough estimation: average 5 characters per second at normal rate
+                const wordsPerMinute = 150 * rate;
+                const words = text.split(' ').length;
+                const minutes = words / wordsPerMinute;
+                const seconds = Math.round(minutes * 60);
+                return seconds;
+            }
+
+            // Initialize range backgrounds
+            initializeRangeStyles() {
+                [this.rateRange, this.pitchRange, this.volumeRange].forEach(range => {
+                    this.updateRangeBackground(range);
+                });
+            }
+        }
+
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!('speechSynthesis' in window)) {
+                document.body.innerHTML = `
+                    <div class="container">
+                        <div class="header">
+                            <h1>🚫 Browser Not Supported</h1>
+                            <p class="subtitle">Speech synthesis is not available in this browser</p>
+                        </div>
+                        <div style="text-align: center; color: rgba(255, 255, 255, 0.8); font-size: 16px; line-height: 1.6;">
+                            <p>Please try using one of these modern browsers:</p>
+                            <br>
+                            <div class="feature-grid">
+                                <div class="feature-card">
+                                    <div class="feature-icon">🌐</div>
+                                    <div class="feature-text">Google Chrome</div>
+                                </div>
+                                <div class="feature-card">
+                                    <div class="feature-icon">🦊</div>
+                                    <div class="feature-text">Mozilla Firefox</div>
+                                </div>
+                                <div class="feature-card">
+                                    <div class="feature-icon">🧭</div>
+                                    <div class="feature-text">Safari</div>
+                                </div>
+                                <div class="feature-card">
+                                    <div class="feature-icon">🔷</div>
+                                    <div class="feature-text">Microsoft Edge</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const app = new AdvancedTextToSpeech();
+            
+            // Initialize range styling after a short delay
+            setTimeout(() => {
+                app.initializeRangeStyles();
+            }, 100);
+
+            // Add some sample texts for demonstration
+            const sampleTexts = [
+                "Welcome to Neural Voice! This is an advanced text-to-speech application with premium features.",
+                "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.",
+                "Artificial intelligence is revolutionizing how we interact with technology through natural language processing.",
+                "Hello world! Bonjour le monde! Hola mundo! Ciao mondo! Hallo Welt!"
+            ];
+
+            // Add context menu for sample texts
+            app.textInput.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                
+                // Create a simple sample text selector (could be enhanced with a proper context menu)
+                const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+                if (confirm('Load a sample text?')) {
+                    app.textInput.value = randomText;
+                    app.updateCharCounter();
+                }
+            });
+
+            console.log('🎙️ Neural Voice initialized successfully!');
+            console.log('💡 Pro tip: Try different voices and experiment with the speed and pitch controls!');
+        });
+
+        // Add some CSS animations that weren't included
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .container {
+                animation: fadeInUp 0.8s ease-out;
+            }
+            
+            .control-card {
+                animation: fadeInUp 0.8s ease-out;
+                animation-fill-mode: both;
+            }
+            
+            .control-card:nth-child(1) { animation-delay: 0.1s; }
+            .control-card:nth-child(2) { animation-delay: 0.2s; }
+            .control-card:nth-child(3) { animation-delay: 0.3s; }
+            .control-card:nth-child(4) { animation-delay: 0.4s; }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
+                            
